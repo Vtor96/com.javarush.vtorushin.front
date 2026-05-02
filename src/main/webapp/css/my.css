@@ -1,0 +1,241 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    color: #333;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+h2 {
+    color: #444;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 10px;
+}
+
+.players-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.players-table th,
+.players-table td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+}
+
+.players-table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    color: #333;
+}
+
+.players-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.players-table tr:hover {
+    background-color: #f1f8ff;
+}
+
+.pagination-container {
+    width: 100%;
+    margin-bottom: 30px;
+}
+
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 20px;
+}
+
+.pagination span:first-child {
+    font-weight: bold;
+    color: #333;
+    white-space: nowrap;
+    margin-right: 15px;
+}
+
+#pagesContainer {
+    display: flex;
+    gap: 8px;
+    flex-grow: 1;
+}
+
+.page-number {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 2px solid #007bff;
+    background-color: transparent;
+    color: #007bff;
+    cursor: pointer;
+    border-radius: 0;
+    font-size: 16px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.page-number.current-page {
+    background-color: #007bff;
+    color: white;
+    border-color: #0056b3;
+    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+.page-number:hover:not(.current-page) {
+    background-color: #e3f2fd;
+    transform: scale(1.08);
+    box-shadow: 0 3px 6px rgba(0, 123, 255, 0.2);
+}
+
+.page-number:active:not(.current-page) {
+    transform: scale(0.95);
+    opacity: 0.8;
+}
+
+.create-form {
+    margin-top: 30px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #333;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #218837;
+}
+
+.btn-edit {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.btn-edit:hover {
+    background-color: #e0a800;
+}
+
+.btn-delete {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-delete:hover {
+    background-color: #c82333;
+}
+
+.edit-input {
+    width: 100%;
+    padding: 4px 8px;
+    border: 1px solid #007bff;
+    border-radius: 3px;
+    background-color: #f8f9fa;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+        margin: 5px;
+    }
+
+    .pagination {
+        gap: 10px;
+        margin: 20px 0;
+        flex-wrap: wrap;
+    }
+
+    .page-number {
+        width: 32px;
+        height: 32px;
+        font-size: 13px;
+    }
+}
+
+.loading {
+    text-align: center;
+    padding: 20px;
+    color: #6c757d;
+}
+
+.error-message {
+    color: #dc3545;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.success-message {
+    color: #28a745;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.edit-error-message {
+    color: #dc3545;
+    font-weight: bold;
+    margin: 8px 0 0 0;
+    display: none;
+}

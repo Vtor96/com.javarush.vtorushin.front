@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>RPG Admin Panel</title>
+    <link rel="stylesheet" href="../css/my.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<div class="container">
+    <h1>RPG Account Management</h1>
+    <!-- Players Table -->
+    <table id="playersTable" class="players-table">
+        <thead>
+        <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Title</th>
+            <th>Race</th>
+            <th>Profession</th>
+            <th>Level</th>
+            <th>Birthday</th>
+            <th>Banned</th>
+            <th>Edit</th>
+            <th>Delete</th>
+        </tr>
+        </thead>
+        <tbody id="playersBody">
+        <!-- Data will be loaded via JavaScript -->
+        </tbody>
+    </table>
+
+    <!-- Pagination Controls -->
+    <div class="pagination-container">
+        <div class="pagination">
+            <span>Pages:</span>
+            <div id="pagesContainer"></div>
+        </div>
+    </div>
+
+    <hr>
+    <!-- Create New Player Form -->
+    <div class="create-form">
+        <h2>Create New Account</h2>
+        <form id="createPlayerForm" autocomplete="off">
+            <div class="form-group">
+                <label>Name (1-12 characters):</label>
+                <input type="text" id="name" maxlength="12" required autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label>Title (1-30 characters):</label>
+                <input type="text" id="title" maxlength="30" required autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label for="race">Race:</label>
+                <select id="race" name="race" required>
+                    <option value="HUMAN">Human</option>
+                    <option value="DWARF">Dwarf</option>
+                    <option value="ELF">Elf</option>
+                    <option value="GIANT">Giant</option>
+                    <option value="ORC">Orc</option>
+                    <option value="TROLL">Troll</option>
+                    <option value="HOBBIT">Hobbit</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="profession">Profession:</label>
+                <select id="profession" name="profession" required>
+                    <option value="WARRIOR">Warrior</option>
+                    <option value="ROGUE">Rogue</option>
+                    <option value="SORCERER">Sorcerer</option>
+                    <option value="CLERIC">Cleric</option>
+                    <option value="PALADIN">Paladin</option>
+                    <option value="NAZGUL">Nazgul</option>
+                    <option value="WARLOCK">Warlock</option>
+                    <option value="DRUID">Druid</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="level">Level (0-100):</label>
+                <input type="number" id="level" name="level" min="0" max="100" step="1" required>
+            </div>
+            <div class="form-group">
+                <label for="birthday">Birthday:</label>
+                <input type="date" id="birthday" name="birthday" required>
+            </div>
+            <div class="form-group">
+                <label for="banned" style="margin-bottom: 5px;">Banned:</label>
+                <div style="display: flex; justify-content: start; align-items: center;">
+                    <input type="checkbox" id="banned" name="banned" style="margin-top: 3px;">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Create Account</button>
+        </form>
+        <div id="create-error" class="error-message" style="display: none;"></div>
+        <div id="create-success" class="success-message" style="display: none;"></div>
+    </div>
+</div>
+
+<script>
+    const BASE_URL = '/rest/players';
+    let currentPage = 0;
+    let pageSize = 5;
+    let totalPlayers = 0;
+    let editingPlayerId = null;
+
+    $(document).ready(function () {
+        loadPlayersCount();
+        loadPlayers(currentPage, pageSize);
+
+        $('#createPlayerForm').submit(function (e) {
+            e.preventDefault();
+            $('#create-error').hide();
+            $('#create-success').hide();
+            createPlayer();
+        });
+    });
+
+    function loadPlayersCount() {
+        $.get(BASE_URL + '/count', function (count) {
+            totalPlayers = count || 0;
+            updatePaginationInfo();
+        }).fail(function () {
+            totalPlayers = 0;
+            updatePaginationInfo();
+        });
+    }
+
+    function loadPlayers(pageNumber, pageSizeCustom) {
+        let pageSz = typeof pageSizeCustom === 'number' ? pageSizeCustom : pageSize;
+        const url = `${BASE_URL}?pageNumber=${pageNumber}&pageSize=${pageSz}`;
+        $('#playersBody').empty();
+        $('#playersBody').append('<tr id="statusMessage"><td colspan="10" class="loading">Loading players...</td></tr>');
+        $.get(url, function (players) {
+            displayPlayers(players);
+            $('#statusMessage').hide();
+        }).fail(function () {
+            $('#playersBody').html('<tr><td colspan="10" class="error-message">Error loading players</td></tr>');
+        });
+    }
+
+    function displayPlayers(players) {
+        const tbody = $('#playersBody');
+        tbody.empty();
+
+        if (!players || players.length === 0) {
+            tbody.append('<tr><td colspan="10" style="text-align: center;">No players found</td></tr>');
+            return;
+        }
+
+        players.forEach(player => {
+            const row = $('<tr>');
+            row.append($('<td>').text(player.id));
+            row.append($('<td>').text(player.name));
+            row.append($('<td>').text(player.title));
+            row.append($('<td>').text(player.race));
+            row.append($('<td>').text(player.profession));
+            row.append($('<td>').text(player.level));
+
+            let dateText = 'N/A';
+            if (player.birthday && !isNaN(player.birthday)) {
+                const date = new Date(player.birthday);
+                if (!isNaN(date.getTime()))
+                    dateText = date.toLocaleDateString();
+            }
+            row.append($('<td>').text(dateText));
+
+            row.append($('<td>').text(player.banned ? 'Yes' : 'No'));
+
+            const editBtn = $('<button>')
+                .addClass('btn btn-edit')
+                .html('<img src="../img/edit.png" alt="Edit" width="20" height="20">')
+                .click(() => editPlayer(player.id));
+
+            const deleteBtn = $('<button>')
+                .addClass('btn btn-delete')
+                .html('<img src="../img/delete.png" alt="Delete" width="20" height="20">')
+                .click(() => deletePlayer(player.id));
+            row.append($('<td>').append(editBtn));
+            row.append($('<td>').append(deleteBtn));
+            tbody.append(row);
+        });
+    }
+
+    function updatePaginationInfo() {
+        const totalPages = Math.ceil(totalPlayers / pageSize);
+        const pagesContainer = $('#pagesContainer');
+        pagesContainer.empty();
+        if (totalPages === 0) {
+            pagesContainer.append('<span class="no-pages">No pages</span>');
+            return;
+        }
+        for (let i = 0; i < totalPages; i++) {
+            const pageNum = i + 1;
+            const isCurrent = i === currentPage;
+            const pageBtn = $('<span>')
+                .addClass('page-number')
+                .text(pageNum)
+                .toggleClass('current-page', isCurrent)
+                .attr('data-page', i)
+                .click(function () {
+                    const pageIndex = parseInt($(this).attr('data-page'), 10);
+                    if (pageIndex === currentPage) return;
+                    currentPage = pageIndex;
+                    loadPlayers(currentPage, pageSize);
+                    updatePaginationInfo();
+                });
+            pagesContainer.append(pageBtn);
+        }
+    }
+
+    function deletePlayer(playerId) {
+        if (!confirm(`Are you sure you want to delete the player with ID ${playerId}?`)) return;
+        $.ajax({
+            url: `${BASE_URL}/${playerId}`,
+            type: 'DELETE',
+            success: function () {
+                alert('Player successfully deleted');
+                loadPlayersCount();
+                setTimeout(() => {
+                    const expectedPages = Math.ceil((totalPlayers - 1) / pageSize);
+                    if (currentPage >= expectedPages && expectedPages > 0) {
+                        currentPage = expectedPages - 1;
+                    }
+                    loadPlayers(currentPage, pageSize);
+                    updatePaginationInfo();
+                }, 300);
+            },
+            error: function (xhr) {
+                let errorMsg = 'Error deleting the player';
+                try {
+                    const responseData = JSON.parse(xhr.responseText);
+                    if (responseData.message) errorMsg += ': ' + responseData.message;
+                } catch (e) {
+                    if (xhr.responseText) errorMsg += ': ' + xhr.responseText;
+                }
+                alert(errorMsg);
+            }
+        });
+    }
+
+    function editPlayer(playerId) {
+        if (editingPlayerId !== null) {
+            return;
+        }
+        const row = $('#playersBody tr').filter(function () {
+            return $(this).find('td').first().text() == playerId;
+        });
+        const cells = row.find('td');
+        const currentValues = {
+            name: cells.eq(1).text(),
+            title: cells.eq(2).text(),
+            race: cells.eq(3).text(),
+            profession: cells.eq(4).text(),
+            banned: cells.eq(7).text() === 'Yes'
+        };
+        $('.edit-error-message').remove();
+
+        cells.eq(1).html(`<input type="text" class="edit-input" value="${currentValues.name.replace(/"/g, '&quot;')}" maxlength="12">`);
+        cells.eq(2).html(`<input type="text" class="edit-input" value="${currentValues.title.replace(/"/g, '&quot;')}" maxlength="30">`);
+        const raceOptions = ['HUMAN', 'DWARF', 'ELF', 'GIANT', 'ORC', 'TROLL', 'HOBBIT'];
+        let raceSelect = '<select class="edit-input">';
+        raceOptions.forEach(race => {
+            const selected = race === currentValues.race ? 'selected' : '';
+            raceSelect += `<option value="${race}" ${selected}>${race}</option>`;
+        });
+        raceSelect += '</select>';
+        cells.eq(3).html(raceSelect);
+
+        const profOptions = ['WARRIOR', 'ROGUE', 'SORCERER', 'CLERIC', 'PALADIN', 'NAZGUL', 'WARLOCK', 'DRUID'];
+        let profSelect = '<select class="edit-input">';
+        profOptions.forEach(prof => {
+            const selected = prof === currentValues.profession ? 'selected' : '';
+            profSelect += `<option value="${prof}" ${selected}>${prof}</option>`;
+        });
+        profSelect += '</select>';
+        cells.eq(4).html(profSelect);
+
+        const bannedCheckbox = `<div style="display: flex; justify-content: start; align-items: center;"><input type="checkbox" class="edit-input" ${currentValues.banned ? 'checked' : ''}></div>`;
+        cells.eq(7).html(bannedCheckbox);
+
+        const editBtn = cells.eq(8).find('button');
+        editBtn.html('<img src="../img/save.png" alt="Save" width="20" height="20">')
+            .off('click')
+            .click(() => savePlayer(playerId, row));
+
+        cells.eq(9).find('button').hide();
+
+        if (row.next('tr.edit-error-row').length === 0) {
+            $('<tr class="edit-error-row"><td colspan="10"><div class="edit-error-message" style="display:none;color:#dc3545;font-weight:bold;"></div></td></tr>').insertAfter(row);
+        }
+        editingPlayerId = playerId;
+    }
+
+    function showEditError(msg, row) {
+        const errorDiv = row.next('.edit-error-row').find('.edit-error-message');
+        errorDiv.text(msg).show();
+    }
+
+    function savePlayer(playerId, row) {
+        const $row = row;
+        const inputs = $row.find('.edit-input');
+        const name = inputs.eq(0).val().trim();
+        const title = inputs.eq(1).val().trim();
+        const race = inputs.eq(2).val();
+        const profession = inputs.eq(3).val();
+        const banned = inputs.eq(4).is(':checked');
+
+        if (!name || name.length < 1 || name.length > 12) {
+            showEditError('Name must be 1–12 characters long', $row);
+            return;
+        }
+        if (!title || title.length < 1 || title.length > 30) {
+            showEditError('Title must be 1–30 characters long', $row);
+            return;
+        }
+        if (!race) {
+            showEditError('Race is required', $row);
+            return;
+        }
+        if (!profession) {
+            showEditError('Profession is required', $row);
+            return;
+        }
+
+        $row.next('.edit-error-row').find('.edit-error-message').hide();
+
+        const updatedData = {
+            name,
+            title,
+            race,
+            profession,
+            banned
+        };
+
+        $.ajax({
+            url: `${BASE_URL}/${playerId}`,
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(updatedData),
+            success: function () {
+                editingPlayerId = null;
+                $row.next('.edit-error-row').remove();
+                loadPlayers(currentPage, pageSize);
+                updatePaginationInfo();
+            },
+            error: function (xhr) {
+                let errorMsg = 'Error saving changes';
+                try {
+                    const responseData = JSON.parse(xhr.responseText);
+                    if (responseData.message) errorMsg += ': ' + responseData.message;
+                } catch (e) {
+                    if (xhr.responseText) errorMsg += ': ' + xhr.responseText;
+                }
+                showEditError(errorMsg, $row);
+            }
+        });
+    }
+
+    function createPlayer() {
+        const name = $('#name').val().trim();
+        const title = $('#title').val().trim();
+        const race = $('#race').val();
+        const profession = $('#profession').val();
+        const levelRaw = $('#level').val();
+        const birthday = $('#birthday').val();
+        const banned = $('#banned').is(':checked');
+
+        if (!name || name.length < 1 || name.length > 12) {
+            $('#create-error').text('Name must be 1–12 characters long').show();
+            return;
+        }
+        if (!title || title.length < 1 || title.length > 30) {
+            $('#create-error').text('Title must be 1–30 characters long').show();
+            return;
+        }
+        if (!race) {
+            $('#create-error').text('Race is required').show();
+            return;
+        }
+        if (!profession) {
+            $('#create-error').text('Profession is required').show();
+            return;
+        }
+        let level = parseInt(levelRaw, 10);
+        if (isNaN(level) || level < 0 || level > 100) {
+            $('#create-error').text('Level must be between 0 and 100').show();
+            return;
+        }
+        if (!birthday) {
+            $('#create-error').text('Birthday is required').show();
+            return;
+        }
+        const birthdayDate = new Date(birthday);
+        if (isNaN(birthdayDate.getTime())) {
+            $('#create-error').text('Invalid date format. Use YYYY-MM-DD').show();
+            return;
+        }
+        const birthdayMillis = birthdayDate.getTime();
+        const formData = {
+            name: name,
+            title: title,
+            race: race,
+            profession: profession,
+            level: level,
+            birthday: birthdayMillis,
+            banned: banned
+        };
+
+        $.ajax({
+            url: BASE_URL,
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            success: function () {
+                $('#create-success').text('Player created successfully').show();
+                $('#create-error').hide();
+                $('#createPlayerForm')[0].reset();
+                loadPlayersCount();
+                currentPage = 0;
+                loadPlayers(currentPage, pageSize);
+                updatePaginationInfo();
+                setTimeout(function () {
+                    $('#create-success').fadeOut();
+                }, 2200);
+            },
+            error: function (xhr) {
+                let errorMsg = 'Error creating player';
+                try {
+                    const responseData = JSON.parse(xhr.responseText);
+                    if (responseData.message) errorMsg += ': ' + responseData.message;
+                } catch (e) {
+                    if (xhr.responseText) errorMsg += ': ' + xhr.responseText;
+                }
+                $('#create-error').text(errorMsg).show();
+                $('#create-success').hide();
+            }
+        });
+    }
+</script>
+</body>
+</html>
